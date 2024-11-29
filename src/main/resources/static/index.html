@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜尋系統</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="search-container">
+            <form id="searchForm" onsubmit="handleSearch(event)">
+                <div class="search-box">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        class="search-input"
+                        placeholder="請輸入搜尋關鍵字..."
+                        required
+                    >
+                    <button type="submit" class="search-button">搜尋</button>
+                </div>
+            </form>
+        </div>
+        <div class="loading" id="loading">搜尋中...</div>
+        <div class="results-container" id="results">
+            <!-- 搜尋結果將在此顯示 -->
+        </div>
+    </div>
+    <script>
+        async function handleSearch(event) {
+            event.preventDefault();
+            const searchInput = document.getElementById('searchInput');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+
+            // 顯示載入中
+            loading.style.display = 'block';
+            results.innerHTML = '';
+
+            try {
+                // 假設您的後端API端點為 /search
+                const response = await fetch(`/api/search?keyword=${encodeURIComponent(searchInput.value)}`);
+                const data = await response.json();
+
+                // 處理搜尋結果
+                displayResults(data);
+            } catch (error) {
+                results.innerHTML = `<div class="result-item">搜尋時發生錯誤：${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResults(results) {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = '';
+
+            if (Object.keys(results).length === 0) {
+                resultsContainer.innerHTML = '<div class="result-item">找不到相關結果</div>';
+                return;
+            }
+
+            for (const [title, url] of Object.entries(results)) {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                resultItem.innerHTML = `
+                    <a href="${url}" class="result-title" target="_blank">${title}</a>
+                    <div class="result-url">${url}</div>
+                `;
+                resultsContainer.appendChild(resultItem);
+            }
+        }
+    </script>
+</body>
+
+</html>
