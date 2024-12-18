@@ -3,7 +3,7 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f5f5f5;
+    background-color: #031927;
 }
 
 .container {
@@ -36,14 +36,21 @@ body {
     padding: 10px 20px;
     font-size: 16px;
     color: #fff;
-    background-color: #007BFF;
+    background-color: #34558B;
     border: none;
     border-radius: 0 4px 4px 0;
     cursor: pointer;
 }
 
 .search-button:hover {
-    background-color: #0056b3;
+    background-color: #658DC6;
+}
+
+.result-count {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
 }
 
 .movie-item {
@@ -71,19 +78,50 @@ body {
     margin-top: 10px;
     padding: 5px 10px;
     color: #fff;
-    background-color: #007BFF;
+    background-color: #34558B;
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
 .show-summary:hover {
-    background-color: #138496;
+    background-color: #658DC6;
 }
 
 .movie-summary {
     margin-top: 10px;
-    font-size: 14px;
+    font-size: 16px;
     color: #444;
     line-height: 1.6;
 }
+
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.pagination-button {
+    padding: 8px 16px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #34558B;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.pagination-button:hover {
+    background-color: #658DC6;
+}
+
+.pagination-info {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+
+

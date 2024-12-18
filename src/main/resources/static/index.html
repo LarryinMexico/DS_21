@@ -13,43 +13,59 @@
         <div class="search-container">
             <form id="searchForm" onsubmit="handleSearch(event)">
                 <div class="search-box">
-                    <input type="text" id="searchInput" class="search-input" placeholder="請輸入電影分類..." required>
+					
+                    <input type="text" id="searchInput" value="愛情" class="search-input" placeholder="請輸入電影分類..." required>
                     <button type="submit" class="search-button">搜尋</button>
+					
                 </div>
+				<div id="result-count" class="result-count"></div>
             </form>
         </div>
         <div class="loading" id="loading" style="display: none;">搜尋中...</div>
 		
-		<div id="results" class="results-container">
-		    <!-- 結果會在這裡動態填入 -->
-		</div>
+		<div id="results" class="results-container"></div>
+		<div id="pagination" class="pagination-container"></div>
+		
     </div>
 
     <script>
-        async function handleSearch(event) {
-            event.preventDefault();
-            const searchInput = document.getElementById('searchInput');
-            const loading = document.getElementById('loading');
-            const results = document.getElementById('results');
+		async function handleSearch(event, currentPage = 1) {
+		    if (event) event.preventDefault();
+		    const searchInput = document.getElementById('searchInput');
+		    const loading = document.getElementById('loading');
+		    const results = document.getElementById('results');
+		    const pagination = document.getElementById('pagination');
 
-            loading.style.display = 'block';
-            results.innerHTML = '';
+		    loading.style.display = 'block';
+		    results.innerHTML = '';
+		    pagination.innerHTML = '';
 
-            try {
-                const response = await fetch(`/api/search?keyword=${encodeURIComponent(searchInput.value)}`);
-                const movieNames = await response.json();
+		    try {
+		        const response = await fetch(`/api/movies/search?keyword=${encodeURIComponent(searchInput.value)}`);
+		        const { scores, relatedSearches } = await response.json();
 
-                if (Object.keys(movieNames).length > 0) {
-					displayResults(movieNames)
-                } else {
-					results.innerHTML = '<div class="result-item">未找到相關電影</div>';
-                }
-            } catch (error) {
-                results.innerHTML = `<div class="result-item">發生錯誤：${error.message}</div>`;
-            } finally {
-                loading.style.display = 'none';
-            }
-        }
+		        if (Object.keys(scores).length > 0) {
+		            displayResults(scores, currentPage);
+		        } else {
+		            results.innerHTML = '<div class="result-item">未找到相關電影</div>';
+		        }
+
+		        if (relatedSearches && relatedSearches.length > 0) {
+		            const relatedSection = `
+		                <div class="related-searches">
+		                    <h3>其他人也搜尋了：</h3>
+		                    <ul>${relatedSearches.map(search => `<li>${search}</li>`).join('')}</ul>
+		                </div>
+		            `;
+		            results.innerHTML += relatedSection;
+		        }
+		    } catch (error) {
+		        results.innerHTML = `<div class="result-item">發生錯誤：${error.message}</div>`;
+		    } finally {
+		        loading.style.display = 'none';
+		    }
+		}
+
 
 		async function fetchMovieSummary(movieName) {
 		    try {
@@ -62,24 +78,45 @@
 		    }
 		}
 		
-		function displayResults(movieScores) {
+		function displayResults(movieScores, currentPage = 1, pageSize = 10) {
 		    const results = document.getElementById('results');
-		    if (Object.keys(movieScores).length === 0) {
-		        results.innerHTML = '<div class="error">找不到相關電影</div>';
-		        return;
-		    }
-		    results.innerHTML = Object.entries(movieScores)
-		        .map(([score, movieName]) => `
+		    const pagination = document.getElementById('pagination');
+		    const resultCount = document.getElementById('result-count');
+		    const sortedMovies = Object.entries(movieScores)
+		        .sort(([, a], [, b]) => b - a);
+
+		    const start = (currentPage - 1) * pageSize;
+		    const end = start + pageSize;
+		    const currentMovies = sortedMovies.slice(start, end);
+
+		    // 顯示總結果數
+		    resultCount.innerHTML = `搜尋結果共 ${sortedMovies.length} 部電影`;
+
+		    // 顯示電影列表
+		    results.innerHTML = currentMovies
+		        .map(([movieName, score]) => `
 		            <div class="movie-item">
 		                <div class="movie-header">
-							<span class="movie-score">分數: ${score}</span> <br>
+		                    <span class="movie-score">分數: ${score}</span>
 		                    <span class="movie-title">${movieName}</span>
 		                </div>
-		                <button class="show-summary" onclick="toggleSummary('${movieName}')">劇情簡介</button> 
+		                <button class="show-summary" onclick="toggleSummary('${movieName}')">劇情簡介</button>
 		                <div class="movie-summary" id="summary-${movieName}"></div>
 		            </div>
 		        `)
 		        .join('');
+
+		    // 顯示分頁按鈕
+		    const totalPages = Math.ceil(sortedMovies.length / pageSize);
+		    pagination.innerHTML = `
+		        <button class="pagination-button" onclick="changePage(${currentPage - 1})" style="visibility: ${currentPage > 1 ? 'visible' : 'hidden'};">上一頁</button>
+		        ${currentPage === totalPages ? '<div class="pagination-info">本頁面為最後一頁</div>' : ''}
+		        <button class="pagination-button" onclick="changePage(${currentPage + 1})" style="visibility: ${currentPage < totalPages ? 'visible' : 'hidden'};">下一頁</button>
+		    `;
+		}
+
+		function changePage(page) {
+		    handleSearch(null, page);
 		}
 
 

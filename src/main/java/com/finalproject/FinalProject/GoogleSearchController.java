@@ -23,7 +23,7 @@ public class GoogleSearchController {
         try {
             // 搜尋並返回電影名稱
             List<String> movieNames = searchService.extractMovieNames(
-                searchService.fetchFromWebsites(searchService.query(keyword)) // 加上"電影"
+                searchService.fetchFromWebsites(searchService.query(keyword)) 
             );
             return ResponseEntity.ok(searchService.removeDuplicates(movieNames));
         } catch (IOException e) {
@@ -44,21 +44,28 @@ public class GoogleSearchController {
     }
     
     @GetMapping("/movies/search")
-    public ResponseEntity<Map<String, Integer>> searchMovies(@RequestParam String keyword) {
+    public ResponseEntity<Map<String, Object>> searchMovies(@RequestParam String keyword) {
         try {
-            // 1. 執行 Google 搜尋，獲取前 8 個網站的 URL
+            // 1. Google 搜尋，獲取前8個網站URL
             List<String> websites = searchService.query(keyword);
 
-            // 2. 爬取每個網站的 h2 和 h3 標籤內容
+            // 2. 爬取每個網站的h2和h3標籤內容
             List<String> websiteTexts = searchService.fetchFromWebsites(websites);
 
-            // 3. 從內容中提取電影名稱
+            // 3. 從中提取電影名稱
             List<String> movieNames = searchService.extractMovieNames(websiteTexts);
 
-            // 4. 計算電影名稱出現次數並排序
-            Map<String, Integer> movieScores = searchService.extractAndScoreMovies(movieNames);
+            // 4. 計算電影名稱出現次數
+            Map<String, Integer> movieScores = searchService.calculateMovieScore(movieNames);
+            
+            // 5. 其他人也搜尋了
+            List<String> relatedSearches = searchService.fetchRelatedSearches(keyword);
 
-            return ResponseEntity.ok(movieScores);
+            Map<String, Object> response = new HashMap<>();
+            response.put("scores", movieScores);
+            response.put("relatedSearches", relatedSearches);
+            
+            return ResponseEntity.ok(response);
         } catch (IOException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyMap());
