@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>搜尋系統</title>
+    <title>電影搜尋系統</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -13,22 +13,18 @@
         <div class="search-container">
             <form id="searchForm" onsubmit="handleSearch(event)">
                 <div class="search-box">
-                    <input
-                        type="text"
-                        id="searchInput"
-                        class="search-input"
-                        placeholder="請輸入搜尋關鍵字..."
-                        required
-                    >
+                    <input type="text" id="searchInput" class="search-input" placeholder="請輸入電影分類..." required>
                     <button type="submit" class="search-button">搜尋</button>
                 </div>
             </form>
         </div>
-        <div class="loading" id="loading">搜尋中...</div>
-        <div class="results-container" id="results">
-            <!-- 搜尋結果將在此顯示 -->
-        </div>
+        <div class="loading" id="loading" style="display: none;">搜尋中...</div>
+		
+		<div id="results" class="results-container">
+		    <!-- 結果會在這裡動態填入 -->
+		</div>
     </div>
+
     <script>
         async function handleSearch(event) {
             event.preventDefault();
@@ -36,43 +32,69 @@
             const loading = document.getElementById('loading');
             const results = document.getElementById('results');
 
-            // 顯示載入中
             loading.style.display = 'block';
             results.innerHTML = '';
 
             try {
-                // 假設您的後端API端點為 /search
                 const response = await fetch(`/api/search?keyword=${encodeURIComponent(searchInput.value)}`);
-                const data = await response.json();
+                const movieNames = await response.json();
 
-                // 處理搜尋結果
-                displayResults(data);
+                if (Object.keys(movieNames).length > 0) {
+					displayResults(movieNames)
+                } else {
+					results.innerHTML = '<div class="result-item">未找到相關電影</div>';
+                }
             } catch (error) {
-                results.innerHTML = `<div class="result-item">搜尋時發生錯誤：${error.message}</div>`;
+                results.innerHTML = `<div class="result-item">發生錯誤：${error.message}</div>`;
             } finally {
                 loading.style.display = 'none';
             }
         }
 
-        function displayResults(results) {
-            const resultsContainer = document.getElementById('results');
-            resultsContainer.innerHTML = '';
+		async function fetchMovieSummary(movieName) {
+		    try {
+		        const response = await fetch(`/api/movies/summary?movieName=${encodeURIComponent(movieName)}`);
+		        if (!response.ok) throw new Error("無法取得簡介");
+		        return await response.text();
+		    } catch (error) {
+		        console.error("Error fetching summary:", error);
+		        return "發生錯誤，無法獲取簡介";
+		    }
+		}
+		
+		function displayResults(movieScores) {
+		    const results = document.getElementById('results');
+		    if (Object.keys(movieScores).length === 0) {
+		        results.innerHTML = '<div class="error">找不到相關電影</div>';
+		        return;
+		    }
+		    results.innerHTML = Object.entries(movieScores)
+		        .map(([score, movieName]) => `
+		            <div class="movie-item">
+		                <div class="movie-header">
+							<span class="movie-score">分數: ${score}</span> <br>
+		                    <span class="movie-title">${movieName}</span>
+		                </div>
+		                <button class="show-summary" onclick="toggleSummary('${movieName}')">劇情簡介</button> 
+		                <div class="movie-summary" id="summary-${movieName}"></div>
+		            </div>
+		        `)
+		        .join('');
+		}
 
-            if (Object.keys(results).length === 0) {
-                resultsContainer.innerHTML = '<div class="result-item">找不到相關結果</div>';
-                return;
-            }
 
-            for (const [title, url] of Object.entries(results)) {
-                const resultItem = document.createElement('div');
-                resultItem.className = 'result-item';
-                resultItem.innerHTML = `
-                    <a href="${url}" class="result-title" target="_blank">${title}</a>
-                    <div class="result-url">${url}</div>
-                `;
-                resultsContainer.appendChild(resultItem);
-            }
-        }
+		async function toggleSummary(movieName) {
+		    const summaryContainer = document.getElementById(`summary-${movieName}`);
+		    if (summaryContainer.style.display === "none") {
+		        const summary = await fetchMovieSummary(movieName);
+		        summaryContainer.innerHTML = `<p>${summary}</p>`;
+		        summaryContainer.style.display = "block";
+		    } else {
+		        summaryContainer.style.display = "none";
+		    }
+		}
+
+		
     </script>
 </body>
 
