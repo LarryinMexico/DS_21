@@ -78,40 +78,46 @@
 		    }
 		}
 		
-		function displayResults(movieScores, currentPage = 1, pageSize = 10) {
+		function displayResults(movieScores, currentPage = 1, pageSize = 20) {
 		    const results = document.getElementById('results');
 		    const pagination = document.getElementById('pagination');
 		    const resultCount = document.getElementById('result-count');
+		    
+		    // 將對象轉換為數組並按分數排序
 		    const sortedMovies = Object.entries(movieScores)
-		        .sort(([, a], [, b]) => b - a);
+		        .sort(([, a], [, b]) => b - a)
+		        .slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-		    const start = (currentPage - 1) * pageSize;
-		    const end = start + pageSize;
-		    const currentMovies = sortedMovies.slice(start, end);
+		    resultCount.innerHTML = `搜尋結果共 ${Object.keys(movieScores).length} 部電影`;
 
-		    // 顯示總結果數
-		    resultCount.innerHTML = `搜尋結果共 ${sortedMovies.length} 部電影`;
-
-		    // 顯示電影列表
-		    results.innerHTML = currentMovies
+		    results.innerHTML = sortedMovies
 		        .map(([movieName, score]) => `
 		            <div class="movie-item">
-		                <div class="movie-header">
-		                    <span class="movie-score">分數: ${score}</span>
-		                    <span class="movie-title">${movieName}</span>
+		                <div class="movie-content">
+		                    <div class="movie-title">${movieName}</div>
+		                    <div class="movie-actions">
+		                        <span class="movie-score">分數: ${score}</span>
+		                        <button class="show-summary" onclick="toggleSummary('${movieName}')">劇情簡介</button>
+		                    </div>
 		                </div>
-		                <button class="show-summary" onclick="toggleSummary('${movieName}')">劇情簡介</button>
-		                <div class="movie-summary" id="summary-${movieName}"></div>
+		                <div class="movie-summary" id="summary-${movieName}" style="display: none;"></div>
 		            </div>
 		        `)
 		        .join('');
 
-		    // 顯示分頁按鈕
-		    const totalPages = Math.ceil(sortedMovies.length / pageSize);
 		    pagination.innerHTML = `
-		        <button class="pagination-button" onclick="changePage(${currentPage - 1})" style="visibility: ${currentPage > 1 ? 'visible' : 'hidden'};">上一頁</button>
-		        ${currentPage === totalPages ? '<div class="pagination-info">本頁面為最後一頁</div>' : ''}
-		        <button class="pagination-button" onclick="changePage(${currentPage + 1})" style="visibility: ${currentPage < totalPages ? 'visible' : 'hidden'};">下一頁</button>
+		        <button class="pagination-button" 
+		                onclick="changePage(${currentPage - 1})" 
+		                style="visibility: ${currentPage > 1 ? 'visible' : 'hidden'};">
+		            上一頁
+		        </button>
+		        ${currentPage === Math.ceil(Object.keys(movieScores).length / pageSize) ? 
+		            '<div class="pagination-info">本頁面為最後一頁</div>' : ''}
+		        <button class="pagination-button" 
+		                onclick="changePage(${currentPage + 1})" 
+		                style="visibility: ${currentPage < Math.ceil(Object.keys(movieScores).length / pageSize) ? 'visible' : 'hidden'};">
+		            下一頁
+		        </button>
 		    `;
 		}
 
