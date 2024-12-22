@@ -53,6 +53,7 @@
 		        if (relatedSearches && relatedSearches.length > 0) {
 		            const relatedSection = `
 		                <div class="related-searches">
+							
 		                    <h3>其他人也搜尋了：</h3>
 		                    <ul>${relatedSearches.map(search => `<li>${search}</li>`).join('')}</ul>
 		                </div>
@@ -83,7 +84,7 @@
 		    const pagination = document.getElementById('pagination');
 		    const resultCount = document.getElementById('result-count');
 		    
-		    // 將對象轉換為數組並按分數排序
+		    // 將對象轉換為數組然後按分數排序
 		    const sortedMovies = Object.entries(movieScores)
 		        .sort(([, a], [, b]) => b - a)
 		        .slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -104,7 +105,7 @@
 		            </div>
 		        `)
 		        .join('');
-
+			
 		    pagination.innerHTML = `
 		        <button class="pagination-button" 
 		                onclick="changePage(${currentPage - 1})" 
@@ -112,7 +113,7 @@
 		            上一頁
 		        </button>
 		        ${currentPage === Math.ceil(Object.keys(movieScores).length / pageSize) ? 
-		            '<div class="pagination-info">本頁面為最後一頁</div>' : ''}
+		            '<div class="pagination-info">本頁為最後一頁</div>' : ''}
 		        <button class="pagination-button" 
 		                onclick="changePage(${currentPage + 1})" 
 		                style="visibility: ${currentPage < Math.ceil(Object.keys(movieScores).length / pageSize) ? 'visible' : 'hidden'};">
