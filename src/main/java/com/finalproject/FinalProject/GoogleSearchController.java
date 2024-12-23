@@ -15,14 +15,47 @@ import java.util.*;
 @RequestMapping("/api")
 public class GoogleSearchController {
     @Autowired
-    private CrawlerService webCrawlerService;
+    private CrawlerService crawlerService;
     
     @Autowired
     private MovieProcessingService movieProcessingService;
     
     @Autowired
     private WikiService wikipediaService;
+    
+    @GetMapping("/movies/search")
+    public ResponseEntity<Map<String, Object>> searchMovies(@RequestParam String keyword) {
+        try {
+            // 1.Google搜尋，獲得前5個網站URL
+            List<String> websites = crawlerService.query(keyword);
 
+            // 2.爬取每個網站的h2和h3標籤內容作為電影名稱來源
+            List<String> websiteTexts = crawlerService.fetchFromWebsites(websites);
+
+            // 3.將提取到的電影名稱作處理
+            List<String> movieNames = movieProcessingService.extractMovieNames(websiteTexts);
+
+            // 4.計算電影名稱出現次數
+            Map<String, Integer> movieScores = movieProcessingService.calculateMovieScore(movieNames);
+            
+            // 5.清理搜尋結果
+            Map<String, Integer> filteredScores = movieProcessingService.filterResults(movieScores);
+            
+            // 6.其他人也搜尋了（抓不到）
+            List<String> relatedSearches = crawlerService.fetchRelatedSearches(keyword);
+            
+            // 將結果Map回傳
+            Map<String, Object> response = new HashMap<>();
+            response.put("scores", filteredScores);
+            response.put("relatedSearches", relatedSearches);
+            
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyMap());
+        }
+    }
+    
     @GetMapping("/movies/summary")
     public ResponseEntity<String> getMovieSummary(@RequestParam String movieName) {
         try {
@@ -32,39 +65,6 @@ public class GoogleSearchController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("發生錯誤，無法獲取簡介");
-        }
-    }
-    
-    @GetMapping("/movies/search")
-    public ResponseEntity<Map<String, Object>> searchMovies(@RequestParam String keyword) {
-        try {
-            // 1.Google 搜尋，獲取前5個網站URL
-            List<String> websites = webCrawlerService.query(keyword);
-
-            // 2.爬取每個網站的h2和h3標籤內容
-            List<String> websiteTexts = webCrawlerService.fetchFromWebsites(websites);
-
-            // 3.提取電影名稱
-            List<String> movieNames = movieProcessingService.extractMovieNames(websiteTexts);
-
-            // 4.計算電影名稱出現次數
-            Map<String, Integer> movieScores = movieProcessingService.calculateMovieScore(movieNames);
-            
-            // 5.清理搜尋結果
-            Map<String, Integer> filteredScores = movieProcessingService.filterResults(movieScores);
-            
-            // 6.其他人也搜尋了: 抓不到
-            List<String> relatedSearches = webCrawlerService.fetchRelatedSearches(keyword);
-            
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("scores", filteredScores);
-            response.put("relatedSearches", relatedSearches);
-            
-            return ResponseEntity.ok(response);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyMap());
         }
     }
 
