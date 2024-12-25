@@ -21,44 +21,48 @@
 				<div id="result-count" class="result-count"></div>
             </form>
         </div>
-        <div class="loading" id="loading" style="display: none;">搜尋中...</div>
-		
+			
+		<div class="loading" id="loading" style="display: none;">搜尋中...</div>
 		<div id="results" class="results-container"></div>
 		<div id="pagination" class="pagination-container"></div>
+		<div id="related-searches-container"></div>
 		
     </div>
 
     <script>
+		
 		async function handleSearch(event, currentPage = 1) {
 		    if (event) event.preventDefault();
 		    const searchInput = document.getElementById('searchInput');
 		    const loading = document.getElementById('loading');
 		    const results = document.getElementById('results');
 		    const pagination = document.getElementById('pagination');
+		    const relatedSearchesContainer = document.getElementById('related-searches-container');
 
 		    loading.style.display = 'block';
 		    results.innerHTML = '';
 		    pagination.innerHTML = '';
+		    relatedSearchesContainer.innerHTML = '';
 
 		    try {
 		        const response = await fetch(`/api/movies/search?keyword=${encodeURIComponent(searchInput.value)}`);
-		        const { scores, relatedSearches } = await response.json();
+		        const data = await response.json();
 
-		        if (Object.keys(scores).length > 0) {
-		            displayResults(scores, currentPage);
+		        if (data.isMovieCategory) {
+		            // 電影搜索結果
+		            if (Object.keys(data.scores).length > 0) {
+		                displayMovieResults(data.scores, currentPage);
+		            } else {
+		                results.innerHTML = '<div class="result-item">未找到相關電影</div>';
+		            }
 		        } else {
-		            results.innerHTML = '<div class="result-item">未找到相關電影</div>';
+		            // 一般搜索結果
+		            displayGeneralResults(data.generalResults);
 		        }
 
-		        if (relatedSearches && relatedSearches.length > 0) {
-		            const relatedSection = `
-		                <div class="related-searches">
-							
-		                    <h3>其他人也搜尋了：</h3>
-		                    <ul>${relatedSearches.map(search => `<li>${search}</li>`).join('')}</ul>
-		                </div>
-		            `;
-		            results.innerHTML += relatedSection;
+		        // 其他人也搜尋了...
+		        if (currentPage === 1 && data.relatedSearches && data.relatedSearches.length > 0) {
+		            displayRelatedSearches(data.relatedSearches);
 		        }
 		    } catch (error) {
 		        results.innerHTML = `<div class="result-item">發生錯誤：${error.message}</div>`;
@@ -66,7 +70,6 @@
 		        loading.style.display = 'none';
 		    }
 		}
-
 
 		async function fetchMovieSummary(movieName) {
 		    try {
@@ -79,7 +82,21 @@
 		    }
 		}
 		
-		function displayResults(movieScores, currentPage = 1, pageSize = 20) {
+		function displayGeneralResults(searchResults) {
+		    const results = document.getElementById('results');
+		    
+		    const resultsHTML = searchResults.map(result => `
+		        <div class="movie-item">
+		            <div class="movie-content">
+		                <div class="movie-title">${result}</div>
+		            </div>
+		        </div>
+		    `).join('');
+		    
+		    results.innerHTML = resultsHTML;
+		}
+		
+		function displayMovieResults(movieScores, currentPage = 1, pageSize = 20) {
 		    const results = document.getElementById('results');
 		    const pagination = document.getElementById('pagination');
 		    const resultCount = document.getElementById('result-count');
@@ -91,21 +108,53 @@
 
 		    resultCount.innerHTML = `搜尋結果共 ${Object.keys(movieScores).length} 部電影`;
 
-		    results.innerHTML = sortedMovies
-		        .map(([movieName, score]) => `
-		            <div class="movie-item">
-		                <div class="movie-content">
-		                    <div class="movie-title">${movieName}</div>
-		                    <div class="movie-actions">
-		                        <span class="movie-score">分數: ${score}</span>
-		                        <button class="show-summary" onclick="toggleSummary('${movieName}')">劇情簡介</button>
+		    // 生成電影列表 HTML
+		    const moviesHTML = sortedMovies
+		        .map(([movieName, score]) => {
+		            const stars = '★'.repeat(score) + '☆'.repeat(5 - score);
+		            return `
+		                <div class="movie-item">
+		                    <div class="movie-content">
+		                        <div class="movie-title">${movieName}</div>
+		                        <div class="movie-actions">
+		                            <span class="movie-score">分數: ${score} <span class="stars">${stars}</span></span>
+		                            <button class="show-summary" onclick="toggleSummary('${movieName}')">劇情簡介</button>
+		                        </div>
 		                    </div>
+		                    <div class="movie-summary" id="summary-${movieName}" style="display: none;"></div>
 		                </div>
-		                <div class="movie-summary" id="summary-${movieName}" style="display: none;"></div>
-		            </div>
-		        `)
+		            `;
+		        })
 		        .join('');
-			
+
+		    // 設置結果內容
+		    results.innerHTML = moviesHTML;
+
+		    // 在第一頁最下方添加相關搜尋區塊
+		    const relatedSearchesDiv = document.createElement('div');
+		    relatedSearchesDiv.id = 'related-searches';
+		    
+		    // 只在第一頁顯示相關搜索
+		    if (currentPage === 1) {
+		        // 獲取之前存儲的相關搜索數據
+		        let relatedSearches = window.lastRelatedSearches || [];
+		        if (relatedSearches.length > 0) {
+		            const relatedHTML = `
+		                <div class="related-searches">
+		                    <h3>其他人也搜尋了：</h3>
+		                    <ul>
+		                        ${relatedSearches.map(search => 
+		                            `<li onclick="document.getElementById('searchInput').value='${search}'; handleSearch(null, 1)">${search}</li>`
+		                        ).join('')}
+		                    </ul>
+		                </div>
+		            `;
+		            relatedSearchesDiv.innerHTML = relatedHTML;
+		            results.appendChild(relatedSearchesDiv);
+		        }
+		    }
+
+		    // 更新分頁控制
 		    pagination.innerHTML = `
 		        <button class="pagination-button" 
 		                onclick="changePage(${currentPage - 1})" 
@@ -125,7 +174,22 @@
 		function changePage(page) {
 		    handleSearch(null, page);
 		}
-
+		
+		function displayRelatedSearches(relatedSearches) {
+		    const container = document.getElementById('related-searches-container');
+		    container.innerHTML = `
+		        <div class="related-searches-box">
+		            <h3>其他人也搜尋了：</h3>
+		            <div class="related-items">
+		                ${relatedSearches.map(search => `
+		                    <div class="related-item" onclick="document.getElementById('searchInput').value='${search}'; handleSearch(null, 1)">
+		                        ${search}
+		                    </div>
+		                `).join('')}
+		            </div>
+		        </div>
+		    `;
+		}
 
 		async function toggleSummary(movieName) {
 		    const summaryContainer = document.getElementById(`summary-${movieName}`);

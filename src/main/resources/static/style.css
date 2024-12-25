@@ -3,7 +3,7 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #031927;
+    background-color: #9da6a3;
 }
 
 .container {
@@ -18,40 +18,55 @@ body {
 /* 搜尋相關樣式 */
 .search-container {
     margin-bottom: 20px;
-}
-
-.search-box {
     display: flex;
     justify-content: center;
 }
 
 .search-input {
     flex: 1;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 4px 0 0 4px;
+    width: 1000px;
+    padding: 15px;
+    font-size: 18px;
+    border: 2px solid #5f624e;
+    border-radius: 8px 8px 8px 8px;
+}
+.search-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%; /* 確保父容器寬度充足 */
+    max-width: 700px; /* 可選：限制父容器的最大寬度 */
+    gap: 10px;
 }
 
 .search-button {
-    padding: 10px 20px;
-    font-size: 16px;
+    padding: 15px 25px;
+    font-size: 18px;
     color: #fff;
-    background-color: #34558B;
+    background-color: #5f624e;
     border: none;
-    border-radius: 0 4px 4px 0;
+    border-radius: 8px 8px 8px 8px;
     cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
 }
 
 .search-button:hover {
-    background-color: #658DC6;
+    background-color: #5f624e;
+    box-shadow: 0 6px 8px rgba(38, 64, 182, 0.2);
+}
+
+.search-button::before {
+    content: "\1F50D"; /* Unicode 搜尋圖標 */
+    font-size: 13px;
+    margin-right: 1px;
 }
 
 /* 結果計數樣式 */
 .result-count {
     text-align: center;
-    margin: 10px 0;
-    font-size: 14px;
+    margin: 25px 20px;
+    font-size: 15px;
     color: #666;
 }
 
@@ -61,7 +76,7 @@ body {
     border-radius: 8px;
     padding: 15px;
     margin-bottom: 15px; /* 增加項目間距 */
-    background-color: #fafafa;
+    background-color: #fefefd;
     transition: all 0.3s ease; /* 添加過渡效果 */
 }
 
@@ -80,7 +95,7 @@ body {
 .movie-title {
     font-size: 18px;
     font-weight: bold;
-    color: #333;
+    color: #5a5859;
     flex: 1;
 }
 
@@ -98,11 +113,17 @@ body {
     border-radius: 4px;
 }
 
+.stars {
+    font-size: 18px; /* 星星大小 */
+    color: #5f624e; /* 星星顏色 */
+    margin-left: 5px; /* 與分數的間距 */
+}
+
 .show-summary {
     padding: 8px 15px;
     font-size: 14px;
     color: #fff;
-    background-color: #34558B;
+    background-color: #5f624e;
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -110,7 +131,7 @@ body {
 }
 
 .show-summary:hover {
-    background-color: #658DC6;
+    background-color: #e4e4dc;
 }
 
 /* 劇情簡介樣式 */
@@ -120,7 +141,7 @@ body {
     font-size: 14px;
     line-height: 1.6;
     color: #444;
-    background-color: #fff;
+    background-color: #e4e4dc;
     border-radius: 4px;
 }
 
@@ -137,7 +158,7 @@ body {
     padding: 8px 16px;
     font-size: 14px;
     color: #fff;
-    background-color: #34558B;
+    background-color: #5f624e;
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -161,33 +182,40 @@ body {
     font-size: 16px;
 }
 
-.related-searches {
+/* 相關搜尋容器樣式 */
+.related-searches-box {
     margin-top: 30px;
     padding: 20px;
     background-color: #f5f5f5;
     border-radius: 8px;
 }
 
-.related-searches h3 {
+.related-searches-box h3 {
     margin-bottom: 15px;
     color: #333;
+    font-size: 16px;
 }
 
+/* 相關搜尋項目樣式 */
 .related-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
 }
 
 .related-item {
-    padding: 8px 15px;
-    background-color: #34558B;
-    color: white;
-    border-radius: 20px;
+    background-color: #fefefd;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
     cursor: pointer;
-    transition: background-color 0.2s;
+    font-size: 14px;
+    transition: all 0.3s ease;
 }
 
 .related-item:hover {
-    background-color: #658DC6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    background-color: #e4e4dc;
 }
