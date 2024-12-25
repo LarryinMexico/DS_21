@@ -4,60 +4,106 @@ body {
     margin: 0;
     padding: 0;
     background-color: #9da6a3;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
+/* 初始狀態容器 */
+.search-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.5s ease;
+}
+
+.search-wrapper.moved {
+    height: auto;
+    position: relative;
+    transform: translateY(10px); 
+}
+
+/* 主容器樣式 */
 .container {
     width: 70%;
-    margin: 20px auto;
-    background: #fff;
+    margin: 10px auto; 
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.5s ease;
 }
 
-/* 搜尋相關樣式 */
+/* 搜尋框容器 */
 .search-container {
-    margin-bottom: 20px;
+    transition: all 0.5s ease;
+    margin-bottom: 10px; 
     display: flex;
     justify-content: center;
 }
 
+/* 搜尋框的盒子 */
+.search-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 700px;
+    gap: 10px;
+}
+
+/* 搜尋輸入框 */
 .search-input {
     flex: 1;
     width: 1000px;
     padding: 15px;
     font-size: 18px;
     border: 2px solid #5f624e;
-    border-radius: 8px 8px 8px 8px;
-}
-.search-box {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%; /* 確保父容器寬度充足 */
-    max-width: 700px; /* 可選：限制父容器的最大寬度 */
-    gap: 10px;
+    border-radius: 8px;
 }
 
+/* 搜尋按鈕 */
 .search-button {
     padding: 15px 25px;
     font-size: 18px;
     color: #fff;
     background-color: #5f624e;
     border: none;
-    border-radius: 8px 8px 8px 8px;
+    border-radius: 8px;
     cursor: pointer;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
 }
 
 .search-button:hover {
-    background-color: #5f624e;
-    box-shadow: 0 6px 8px rgba(38, 64, 182, 0.2);
+    background-color: #4a4d3d;
+    transform: translateY(-2px);
+}
+
+/* 搜尋結果容器 */
+.results-section {
+    opacity: 0;
+    transform: translateY(10px); 
+    transition: all 0.5s ease;
+    display: none;
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px auto;  
+    max-width: 1000px;
+    width: 90%;
+}
+
+.results-section.active {
+    opacity: 1;
+    transform: translateY(0);
+    display: block;
 }
 
 .search-button::before {
-    content: "\1F50D"; /* Unicode 搜尋圖標 */
+    content: "\1F50D";
     font-size: 13px;
     margin-right: 1px;
 }
@@ -65,23 +111,23 @@ body {
 /* 結果計數樣式 */
 .result-count {
     text-align: center;
-    margin: 25px 20px;
+    margin: 15px 20px; /* 從25px改為15px */
     font-size: 15px;
     color: #666;
 }
 
-/* 電影項目樣式 */
+/* 其餘樣式保持不變... */
 .movie-item {
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 15px;
-    margin-bottom: 15px; /* 增加項目間距 */
+    margin-bottom: 15px;
     background-color: #fefefd;
-    transition: all 0.3s ease; /* 添加過渡效果 */
+    transition: all 0.3s ease;
 }
 
 .movie-item:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* 懸停效果 */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transform: translateY(-2px);
 }
 
@@ -114,9 +160,9 @@ body {
 }
 
 .stars {
-    font-size: 18px; /* 星星大小 */
-    color: #5f624e; /* 星星顏色 */
-    margin-left: 5px; /* 與分數的間距 */
+    font-size: 18px;
+    color: #5f624e;
+    margin-left: 5px;
 }
 
 .show-summary {
@@ -218,4 +264,27 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transform: translateY(-2px);
     background-color: #e4e4dc;
+}
+
+/* 一般搜尋的結果 */
+.result-item {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.result-title {
+    color: #1a0dab;
+    font-size: 18px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.result-title:hover {
+    text-decoration: underline;
+}
+
+.result-url {
+    color: #006621;
+    font-size: 14px;
+    margin-top: 4px;
 }

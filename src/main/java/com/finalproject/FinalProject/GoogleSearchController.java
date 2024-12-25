@@ -48,7 +48,7 @@ public class GoogleSearchController {
                 response.put("isMovieCategory", true);
             } else { // 一般搜索
             	
-                List<String> searchResults = crawlerService.generalSearch(keyword);
+                List<Map<String, String>> searchResults = crawlerService.generalSearch(keyword);
                 response.put("generalResults", searchResults);
                 response.put("isMovieCategory", false);
             }

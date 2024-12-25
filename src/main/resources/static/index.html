@@ -9,67 +9,82 @@
 </head>
 
 <body>
-    <div class="container">
-        <div class="search-container">
-            <form id="searchForm" onsubmit="handleSearch(event)">
-                <div class="search-box">
-					
-                    <input type="text" id="searchInput" value="愛情" class="search-input" placeholder="請輸入電影分類..." required>
-                    <button type="submit" class="search-button">搜尋</button>
-					
-                </div>
-				<div id="result-count" class="result-count"></div>
-            </form>
-        </div>
-			
-		<div class="loading" id="loading" style="display: none;">搜尋中...</div>
-		<div id="results" class="results-container"></div>
-		<div id="pagination" class="pagination-container"></div>
-		<div id="related-searches-container"></div>
-		
-    </div>
+	<div class="search-wrapper" id="searchWrapper">
+	    <div class="container">
+	        <div class="search-container">
+	            <form id="searchForm" onsubmit="handleSearch(event)">
+	                <div class="search-box">
+	                    <input type="text" id="searchInput" class="search-input" placeholder="請輸入電影分類..." required>
+	                    <button type="submit" class="search-button">搜尋</button>
+	                </div>
+	                <div id="result-count" class="result-count"></div>
+	            </form>
+	        </div>
+	    </div>
+	</div>
+
+	<!-- 搜尋結果 -->
+	<div class="results-section" id="resultsSection">
+	    <div class="loading" id="loading" style="display: none;">搜尋中...</div>
+	    <div id="results" class="results-container"></div>
+	    <div id="pagination" class="pagination-container"></div>
+	    <div id="related-searches-container"></div>
+	</div>
 
     <script>
-		
-		async function handleSearch(event, currentPage = 1) {
-		    if (event) event.preventDefault();
-		    const searchInput = document.getElementById('searchInput');
-		    const loading = document.getElementById('loading');
-		    const results = document.getElementById('results');
-		    const pagination = document.getElementById('pagination');
-		    const relatedSearchesContainer = document.getElementById('related-searches-container');
+		let isFirstSearch = true;
 
-		    loading.style.display = 'block';
-		    results.innerHTML = '';
-		    pagination.innerHTML = '';
-		    relatedSearchesContainer.innerHTML = '';
+        async function handleSearch(event) {
+            if (event) event.preventDefault();
+            
+            if (isFirstSearch) {
+                // 移動搜尋框
+                document.getElementById('searchWrapper').classList.add('moved');
+                
+                // 顯示結果區域
+                const resultsSection = document.getElementById('resultsSection');
+                resultsSection.style.display = 'block';
+                setTimeout(() => {
+                    resultsSection.classList.add('active');
+                }, 50);
+                
+                isFirstSearch = false;
+            }
 
-		    try {
-		        const response = await fetch(`/api/movies/search?keyword=${encodeURIComponent(searchInput.value)}`);
-		        const data = await response.json();
+            const searchInput = document.getElementById('searchInput');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const pagination = document.getElementById('pagination');
+            const relatedSearchesContainer = document.getElementById('related-searches-container');
 
-		        if (data.isMovieCategory) {
-		            // 電影搜索結果
-		            if (Object.keys(data.scores).length > 0) {
-		                displayMovieResults(data.scores, currentPage);
-		            } else {
-		                results.innerHTML = '<div class="result-item">未找到相關電影</div>';
-		            }
-		        } else {
-		            // 一般搜索結果
-		            displayGeneralResults(data.generalResults);
-		        }
+            loading.style.display = 'block';
+            results.innerHTML = '';
+            pagination.innerHTML = '';
+            relatedSearchesContainer.innerHTML = '';
 
-		        // 其他人也搜尋了...
-		        if (currentPage === 1 && data.relatedSearches && data.relatedSearches.length > 0) {
-		            displayRelatedSearches(data.relatedSearches);
-		        }
-		    } catch (error) {
-		        results.innerHTML = `<div class="result-item">發生錯誤：${error.message}</div>`;
-		    } finally {
-		        loading.style.display = 'none';
-		    }
-		}
+            try {
+                const response = await fetch(`/api/movies/search?keyword=${encodeURIComponent(searchInput.value)}`);
+                const data = await response.json();
+
+                if (data.isMovieCategory) {
+                    if (Object.keys(data.scores).length > 0) {
+                        displayMovieResults(data.scores, 1);
+                    } else {
+                        results.innerHTML = '<div class="result-item">未找到相關電影</div>';
+                    }
+                } else {
+                    displayGeneralResults(data.generalResults);
+                }
+
+                if (data.relatedSearches && data.relatedSearches.length > 0) {
+                    displayRelatedSearches(data.relatedSearches);
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="result-item">發生錯誤：${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
 
 		async function fetchMovieSummary(movieName) {
 		    try {
@@ -84,11 +99,17 @@
 		
 		function displayGeneralResults(searchResults) {
 		    const results = document.getElementById('results');
+		    const resultCount = document.getElementById('result-count');
+		    
+		    resultCount.innerHTML = `搜尋結果共 ${searchResults.length} 項結果`;
 		    
 		    const resultsHTML = searchResults.map(result => `
-		        <div class="movie-item">
-		            <div class="movie-content">
-		                <div class="movie-title">${result}</div>
+		        <div class="result-item">
+		            <div class="result-content">
+		                <a href="${result.url}" target="_blank" class="result-title">
+		                    ${result.title}
+		                </a>
+		                <div class="result-url">${result.url}</div>
 		            </div>
 		        </div>
 		    `).join('');
