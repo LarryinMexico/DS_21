@@ -113,15 +113,16 @@ public class MovieProcessingService {
     
     // 定義不要包含的字
     private static final List<String> KEYWORDS = Arrays.asList(
-    		"推薦", "排名", "獎", "整理", "分享", "必看", "電影", "鐵證", 
+    		"推薦", "排名", "獎", "整理", "分享", "必看", "鐵證", "絕對",
     		"看", "可能", "好評", "上映", "完結篇", "即使", "更多", "禮物",
     		"租", "不錯過", "獨家", "片", "榜", "登入", "吧", "劇", "輸入", 
     		"大賽", "頻", "首頁", "列表", "下載", "特輯", "發送", "搜尋", "院",
     		"全部", "透過", "熱門", "免費", "兒童", "怎麼說", "提醒", "回到",
     		"感動", "其他", "正式", "導演", "最新消息", "留言", "影迷", "延伸閱讀",
-    		"為人民服務", "爽度破表", "文化", "汽車", "分類", "但卻怕", "結語", "絕對");
+    		"為人民服務", "爽度破表", "文化", "汽車", "分類", "但卻怕", "結語",
+    		"網友激推", "教你", "懶人包", "盤點", "影音平台");
     
-    // 過濾
+    // 然後過濾
     public Map<String, Integer> filterResults(Map<String, Integer> movieScores) {
         return movieScores.entrySet().stream()
             .filter(entry -> isValidResult(entry.getKey(), entry.getValue()))
@@ -142,7 +143,6 @@ public class MovieProcessingService {
         }
         return true;
     }
-    
     
     // 切換頁數
     public List<String> paginateResults(List<String> movieNames, int page, int pageSize) {

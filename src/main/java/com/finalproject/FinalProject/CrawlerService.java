@@ -44,6 +44,11 @@ public class CrawlerService {
     
     // 是否為電影類別
     public boolean isMovieCategory(String keyword) {
+        // 檢查是否以"電影"結尾
+        if (keyword.endsWith("電影")) {
+            return true;
+        }
+        // 保留原有的類別判斷邏輯作為備用
         return MOVIE_CATEGORIES.stream()
             .anyMatch(category -> keyword.contains(category));
     }
@@ -119,7 +124,7 @@ public class CrawlerService {
 	        .filter(url -> url.startsWith("http://") || url.startsWith("https://")) // 確保是完整url
 	        .filter(url -> !url.contains("google.com")) // 過濾內部連結
 	        .filter(this::isValidUrl) // 驗證url是否有效
-	        .limit(7) //用前7個網頁中的電影名稱
+	        .limit(5) //用前5個網頁中的電影名稱
 	        .collect(Collectors.toList());
 	}
 	
@@ -156,38 +161,146 @@ public class CrawlerService {
     }
     
     // 其他人也搜尋了...
-    public List<String> fetchRelatedSearches(String keyword) throws IOException {
-        String searchUrl = "https://www.google.com/search?q=" + 
-            java.net.URLEncoder.encode(keyword + " 電影", "utf-8") + "&hl=zh-TW&gl=tw";
-            
-        Document doc = Jsoup.connect(searchUrl)
-            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-            .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
-            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-            .referrer("https://www.google.com")
-            .followRedirects(true)
-            .timeout(10000)
-            .get();
-
-        // 使用多個可能的選擇器
-        Elements relatedSearches = new Elements();
+    public List<String> fetchRelatedSearches(String keyword) {
+        int maxRetries = 3;
+        int retryDelay = 2000; // 2 seconds
         
-        // 嘗試所有可能的選擇器
-        relatedSearches.addAll(doc.select("div.card-section a:has(b)"));
-        if (relatedSearches.isEmpty()) {
-            relatedSearches.addAll(doc.select(".y6Uyqe .ngTNl.ggLgoc"));
-        }
-        if (relatedSearches.isEmpty()) {
-            relatedSearches.addAll(doc.select(".dg6jd b"));
-        }
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                String searchUrl = "https://www.google.com/search?q=" + 
+                    java.net.URLEncoder.encode(keyword + " 電影", "utf-8") + "&hl=zh-TW&gl=tw";
+                    
+                Document doc = Jsoup.connect(searchUrl)
+                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                    .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+                    .referrer("https://www.google.com")
+                    .followRedirects(true)
+                    .timeout(10000)
+                    .get();
 
-        return relatedSearches.stream()
-            .map(element -> element.select("b").text())
-            .filter(text -> !text.isEmpty())
-            .distinct()
-            .limit(8)
-            .collect(Collectors.toList());
+                Elements relatedSearches = new Elements();
+                relatedSearches.addAll(doc.select("div.card-section a:has(b)"));
+                if (relatedSearches.isEmpty()) {
+                    relatedSearches.addAll(doc.select(".y6Uyqe .ngTNl.ggLgoc"));
+                }
+                if (relatedSearches.isEmpty()) {
+                    relatedSearches.addAll(doc.select(".dg6jd b"));
+                }
+
+                List<String> results = relatedSearches.stream()
+                    .map(element -> element.select("b").text())
+                    .filter(text -> !text.isEmpty())
+                    .distinct()
+                    .limit(8)
+                    .collect(Collectors.toList());
+                    
+                // 如果沒有找到任何結果，返回空列表而不是拋出異常
+                return results.isEmpty() ? new ArrayList<>() : results;
+                
+            } catch (Exception e) {
+                logger.error("Error fetching related searches (attempt " + (i + 1) + "): " + e.getMessage());
+                if (i < maxRetries - 1) {
+                    try {
+                        Thread.sleep(retryDelay * (i + 1));  // 指數退避
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // 如果重試都失敗 返回空列表
+        return new ArrayList<>();
     }
+    
+    // 爬取子網頁
+    public List<WebPage> crawlSubpages(String keyword) throws IOException {
+        
+        List<String> mainPages = Moviequery(keyword).stream()
+                .limit(5)
+                .collect(Collectors.toList());
+        
+        List<WebPage> webPageTree = new ArrayList<>();
+        
+        System.out.println("\n----- 開始爬取網頁及其子網頁 -----\n");
+        
+        for (int i = 0; i < mainPages.size(); i++) {
+            String mainUrl = mainPages.get(i);
+            WebPage mainPage = new WebPage(mainUrl);
+            System.out.println((i + 1) + ". 正在處理網頁：" + mainUrl);
+            
+            try {
+                Document doc = Jsoup.connect(mainUrl)
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124")
+                        .timeout(10000)
+                        .get();
+                
+                Elements links = doc.select("a[href]");
+                System.out.println("   共有 " + links.size() + " 個子網頁");
+                System.out.println("   前10個子網頁為：");
+                
+                int validSubPages = 0;
+                for (Element link : links) {
+                    if (validSubPages >= 10) break; // 限制每個主頁面最多顯示10個子頁面
+                    
+                    String href = link.attr("abs:href");
+                    if (isValidSubpage(href, mainUrl)) {
+                        mainPage.addSubPage(new WebPage(href));
+                        validSubPages++;
+                    }
+                }
+                
+                webPageTree.add(mainPage);
+                
+                // 輸出tree
+                System.out.println("\nTree:");
+                System.out.println(mainPage.toString());
+                
+            } catch (IOException e) {
+                System.out.println("   無法訪問該網頁：" + e.getMessage());
+            }
+            
+            System.out.println();
+        }
+        
+        return webPageTree;
+    }
+
+    // 子網頁url是否有效
+    private boolean isValidSubpage(String url, String mainUrl) {
+        if (url == null || url.isEmpty()) {
+            return false;
+        }
+        
+        // 確保URL是以http或https開頭
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            return false;
+        }
+        
+        // 過濾掉一些常見的非內容頁面
+        String lowerUrl = url.toLowerCase();
+        if (lowerUrl.contains("javascript:") || 
+            lowerUrl.contains("mailto:") || 
+            lowerUrl.contains("tel:") ||
+            lowerUrl.contains("login") ||
+            lowerUrl.contains("logout") ||
+            lowerUrl.contains("signup") ||
+            lowerUrl.contains("#")) {
+            return false;
+        }
+        
+        // 確保子網頁屬於同一個域名
+        try {
+            java.net.URL mainUrlObj = new java.net.URL(mainUrl);
+            java.net.URL subUrlObj = new java.net.URL(url);
+            return mainUrlObj.getHost().equals(subUrlObj.getHost());
+        } catch (java.net.MalformedURLException e) {
+            return false;
+        }
+    }
+    
 	
     
     // 緩存相關設定 //

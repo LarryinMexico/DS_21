@@ -35,6 +35,12 @@ public class GoogleSearchController {
             	
                 // 1.Google搜尋，獲得前5個網站URL
                 List<String> websites = crawlerService.Moviequery(keyword);
+                
+                // 插入：爬取子網頁
+                System.out.println("\n===== 開始爬取網頁及其子網頁 =====");
+                crawlerService.crawlSubpages(keyword);
+                System.out.println("===== 子網頁爬取完成 =====\n");
+                
                 // 2.爬取每個網站的h2和h3標籤內容作為電影名稱來源
                 List<String> websiteTexts = crawlerService.fetchFromWebsites(websites);
                 // 3.將提取到的電影名稱作處理
@@ -73,6 +79,18 @@ public class GoogleSearchController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("發生錯誤，無法獲取簡介");
+        }
+    }
+    
+    // 印出子網頁
+    @GetMapping("/movies/subpages")
+    public ResponseEntity<String> crawlSubpages(@RequestParam String keyword) {
+        try {
+            crawlerService.crawlSubpages(keyword);
+            return ResponseEntity.ok("子網頁爬取完成");
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("爬取中發生錯誤: " + e.getMessage());
         }
     }
 

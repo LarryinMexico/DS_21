@@ -33,58 +33,74 @@
 
     <script>
 		let isFirstSearch = true;
+		
+		// 定義全局變量
+		let globalSearchResults = {
+		    scores: null,
+		    isMovieCategory: false,
+		    relatedSearches: [],
+		    currentPage: 1,
+		    pageSize: 20
+		};
 
-        async function handleSearch(event) {
-            if (event) event.preventDefault();
-            
-            if (isFirstSearch) {
-                // 移動搜尋框
-                document.getElementById('searchWrapper').classList.add('moved');
-                
-                // 顯示結果區域
-                const resultsSection = document.getElementById('resultsSection');
-                resultsSection.style.display = 'block';
-                setTimeout(() => {
-                    resultsSection.classList.add('active');
-                }, 50);
-                
-                isFirstSearch = false;
-            }
+		async function handleSearch(event) {
+		    if (event) event.preventDefault();
+		    
+		    // 重置分頁
+		    globalSearchResults.currentPage = 1;
+		    
+		    if (isFirstSearch) {
+		        document.getElementById('searchWrapper').classList.add('moved');
+		        const resultsSection = document.getElementById('resultsSection');
+		        resultsSection.style.display = 'block';
+		        setTimeout(() => {
+		            resultsSection.classList.add('active');
+		        }, 50);
+		        isFirstSearch = false;
+		    }
 
-            const searchInput = document.getElementById('searchInput');
-            const loading = document.getElementById('loading');
-            const results = document.getElementById('results');
-            const pagination = document.getElementById('pagination');
-            const relatedSearchesContainer = document.getElementById('related-searches-container');
+		    const searchInput = document.getElementById('searchInput');
+		    const loading = document.getElementById('loading');
+		    const results = document.getElementById('results');
+		    const pagination = document.getElementById('pagination');
+		    const relatedSearchesContainer = document.getElementById('related-searches-container');
 
-            loading.style.display = 'block';
-            results.innerHTML = '';
-            pagination.innerHTML = '';
-            relatedSearchesContainer.innerHTML = '';
+		    loading.style.display = 'block';
+		    results.innerHTML = '';
+		    pagination.innerHTML = '';
+		    relatedSearchesContainer.innerHTML = '';
 
-            try {
-                const response = await fetch(`/api/movies/search?keyword=${encodeURIComponent(searchInput.value)}`);
-                const data = await response.json();
+		    try {
+		        const response = await fetch(`/api/movies/search?keyword=${encodeURIComponent(searchInput.value)}`);
+		        const data = await response.json();
 
-                if (data.isMovieCategory) {
-                    if (Object.keys(data.scores).length > 0) {
-                        displayMovieResults(data.scores, 1);
-                    } else {
-                        results.innerHTML = '<div class="result-item">未找到相關電影</div>';
-                    }
-                } else {
-                    displayGeneralResults(data.generalResults);
-                }
+		        // 存儲搜索結果到全局變量
+		        globalSearchResults = {
+		            ...globalSearchResults,
+		            scores: data.scores,
+		            isMovieCategory: data.isMovieCategory,
+		            relatedSearches: data.relatedSearches || []
+		        };
 
-                if (data.relatedSearches && data.relatedSearches.length > 0) {
-                    displayRelatedSearches(data.relatedSearches);
-                }
-            } catch (error) {
-                results.innerHTML = `<div class="result-item">發生錯誤：${error.message}</div>`;
-            } finally {
-                loading.style.display = 'none';
-            }
-        }
+		        if (data.isMovieCategory) {
+		            if (Object.keys(data.scores).length > 0) {
+		                displayMovieResults(data.scores);
+		            } else {
+		                results.innerHTML = '<div class="result-item">未找到相關電影</div>';
+		            }
+		        } else {
+		            displayGeneralResults(data.generalResults);
+		        }
+
+		        if (data.relatedSearches && data.relatedSearches.length > 0) {
+		            displayRelatedSearches(data.relatedSearches);
+		        }
+		    } catch (error) {
+		        results.innerHTML = `<div class="result-item">發生錯誤：${error.message}</div>`;
+		    } finally {
+		        loading.style.display = 'none';
+		    }
+		}
 
 		async function fetchMovieSummary(movieName) {
 		    try {
@@ -117,19 +133,24 @@
 		    results.innerHTML = resultsHTML;
 		}
 		
-		function displayMovieResults(movieScores, currentPage = 1, pageSize = 20) {
+		function displayMovieResults(movieScores) {
 		    const results = document.getElementById('results');
 		    const pagination = document.getElementById('pagination');
 		    const resultCount = document.getElementById('result-count');
 		    
-		    // 將對象轉換為數組然後按分數排序
+		    const totalMovies = Object.entries(movieScores).length;
+		    const totalPages = Math.ceil(totalMovies / globalSearchResults.pageSize);
+		    const startIndex = (globalSearchResults.currentPage - 1) * globalSearchResults.pageSize;
+		    const endIndex = startIndex + globalSearchResults.pageSize;
+		    
+		    // 對電影進行排序並獲取當前頁的數據
 		    const sortedMovies = Object.entries(movieScores)
 		        .sort(([, a], [, b]) => b - a)
-		        .slice((currentPage - 1) * pageSize, currentPage * pageSize);
+		        .slice(startIndex, endIndex);
 
-		    resultCount.innerHTML = `搜尋結果共 ${Object.keys(movieScores).length} 部電影`;
+		    resultCount.innerHTML = `搜尋結果共 ${totalMovies} 部電影（第 ${globalSearchResults.currentPage} 頁，共 ${totalPages} 頁）`;
 
-		    // 生成電影列表 HTML
+		    // 生成電影列表html
 		    const moviesHTML = sortedMovies
 		        .map(([movieName, score]) => {
 		            const stars = '★'.repeat(score) + '☆'.repeat(5 - score);
@@ -148,52 +169,46 @@
 		        })
 		        .join('');
 
-		    // 設置結果內容
 		    results.innerHTML = moviesHTML;
 
-		    // 在第一頁最下方添加相關搜尋區塊
-		    const relatedSearchesDiv = document.createElement('div');
-		    relatedSearchesDiv.id = 'related-searches';
-		    
-		    // 只在第一頁顯示相關搜索
-		    if (currentPage === 1) {
-		        // 獲取之前存儲的相關搜索數據
-		        let relatedSearches = window.lastRelatedSearches || [];
-		        if (relatedSearches.length > 0) {
-		            const relatedHTML = `
-		                <div class="related-searches">
-		                    <h3>其他人也搜尋了：</h3>
-		                    <ul>
-		                        ${relatedSearches.map(search => 
-		                            `<li onclick="document.getElementById('searchInput').value='${search}'; handleSearch(null, 1)">${search}</li>`
-		                        ).join('')}
-		                    </ul>
-		                </div>
-		            `;
-		            relatedSearchesDiv.innerHTML = relatedHTML;
-		            results.appendChild(relatedSearchesDiv);
-		        }
-		    }
+		    // 更新分頁按鈕
+		    updatePagination(totalPages);
+		}
+		
+		function updatePagination(totalPages) {
+		    const pagination = document.getElementById('pagination');
+		    const { currentPage } = globalSearchResults;
 
-		    // 更新分頁控制
 		    pagination.innerHTML = `
 		        <button class="pagination-button" 
-		                onclick="changePage(${currentPage - 1})" 
-		                style="visibility: ${currentPage > 1 ? 'visible' : 'hidden'};">
+		                onclick="changePage(${currentPage - 1})"
+		                ${currentPage <= 1 ? 'disabled' : ''}>
 		            上一頁
 		        </button>
-		        ${currentPage === Math.ceil(Object.keys(movieScores).length / pageSize) ? 
-		            '<div class="pagination-info">本頁為最後一頁</div>' : ''}
+		        <span class="pagination-info">
+		            第 ${currentPage} 頁 / 共 ${totalPages} 頁
+		        </span>
 		        <button class="pagination-button" 
-		                onclick="changePage(${currentPage + 1})" 
-		                style="visibility: ${currentPage < Math.ceil(Object.keys(movieScores).length / pageSize) ? 'visible' : 'hidden'};">
+		                onclick="changePage(${currentPage + 1})"
+		                ${currentPage >= totalPages ? 'disabled' : ''}>
 		            下一頁
 		        </button>
 		    `;
 		}
 
-		function changePage(page) {
-		    handleSearch(null, page);
+		function changePage(newPage) {
+		    const totalPages = Math.ceil(Object.entries(globalSearchResults.scores).length / globalSearchResults.pageSize);
+		    
+		    // 驗證頁碼是否有效
+		    if (newPage < 1 || newPage > totalPages) {
+		        return;
+		    }
+
+		    // 更新當前頁碼
+		    globalSearchResults.currentPage = newPage;
+		    
+		    // 使用現有的數據重新顯示結果
+		    displayMovieResults(globalSearchResults.scores);
 		}
 		
 		function displayRelatedSearches(relatedSearches) {
